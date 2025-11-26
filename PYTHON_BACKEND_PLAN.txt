@@ -1,0 +1,727 @@
+================================================================================
+DARSHAN DIRECTIONS - PYTHON BACKEND IMPLEMENTATION PLAN
+================================================================================
+
+PROJECT OVERVIEW:
+Convert the React-based spiritual navigation app to a Python backend with 
+REST API, deploy on Render (free tier), and prepare for iOS/Android mobile apps.
+
+================================================================================
+PART 1: CODEBASE ANALYSIS
+================================================================================
+
+CURRENT ARCHITECTURE (React Frontend):
+--------------------------------------
+1. CORE FEATURES:
+   - Precision compass with device orientation sensors
+   - Geolocation tracking (GPS)
+   - Great Circle bearing calculation (Haversine formula)
+   - Target location search via Google Gemini AI
+   - User dashboard with spiritual progress tracking
+   - Settings (dark mode, alarms, haptic feedback)
+   - Programs/Events listing
+
+2. KEY COMPONENTS:
+   - useSensors.ts: Geolocation + DeviceOrientation API
+   - useBearing.ts: Haversine distance & bearing calculations
+   - geminiService.ts: Google GenAI SDK for location search
+   - Views: Home, Dashboard, Programs, Settings
+   - Compass.tsx: SVG-based compass visualization
+
+3. DATA STRUCTURES:
+   - Coordinates: {latitude, longitude}
+   - LocationTarget: {name, coords, description}
+   - User State: {isLoggedIn, coords, heading}
+   - Spiritual Metrics: Japa streaks, Pranayama cycles, Darshan visits
+
+4. CURRENT LIMITATIONS:
+   - No persistent data storage
+   - No real authentication system
+   - No backend API
+   - Client-side only calculations
+   - No user data synchronization
+
+================================================================================
+PART 2: PYTHON BACKEND ARCHITECTURE
+================================================================================
+
+TECHNOLOGY STACK:
+-----------------
+1. Framework: FastAPI (async, fast, modern, auto-docs)
+2. Database: PostgreSQL (Render free tier includes PostgreSQL)
+3. ORM: SQLAlchemy 2.0 (async support)
+4. Authentication: JWT tokens + bcrypt password hashing
+5. API Documentation: Auto-generated via FastAPI (Swagger/OpenAPI)
+6. External APIs: Google Gemini AI for location search
+7. Deployment: Render Web Service (free tier)
+
+BACKEND STRUCTURE:
+------------------
+backend/
+├── app/
+│   ├── __init__.py
+│   ├── main.py                 # FastAPI app entry point
+│   ├── config.py               # Environment variables, settings
+│   ├── database.py             # Database connection, session management
+│   │
+│   ├── models/                 # SQLAlchemy ORM models
+│   │   ├── __init__.py
+│   │   ├── user.py            # User model
+│   │   ├── location.py        # Saved locations
+│   │   ├── spiritual_log.py   # Japa, Pranayama, Darshan logs
+│   │   └── event.py           # Programs/Events
+│   │
+│   ├── schemas/                # Pydantic models (request/response)
+│   │   ├── __init__.py
+│   │   ├── user.py
+│   │   ├── location.py
+│   │   ├── spiritual.py
+│   │   └── auth.py
+│   │
+│   ├── api/                    # API routes
+│   │   ├── __init__.py
+│   │   ├── auth.py            # Login, register, token refresh
+│   │   ├── users.py           # User profile, admin operations
+│   │   ├── locations.py       # Search, save, list locations
+│   │   ├── compass.py         # Bearing calculations
+│   │   ├── spiritual.py       # Japa, Pranayama, Darshan tracking
+│   │   └── events.py          # Programs/Events CRUD
+│   │
+│   ├── services/               # Business logic
+│   │   ├── __init__.py
+│   │   ├── auth_service.py    # JWT, password hashing
+│   │   ├── gemini_service.py  # Google Gemini integration
+│   │   ├── bearing_service.py # Haversine calculations
+│   │   └── admin_service.py   # Admin-specific operations
+│   │
+│   ├── middleware/             # Custom middleware
+│   │   ├── __init__.py
+│   │   └── auth_middleware.py # JWT verification
+│   │
+│   └── utils/                  # Helper functions
+│       ├── __init__.py
+│       ├── security.py        # Password hashing, token generation
+│       └── calculations.py    # Bearing, distance calculations
+│
+├── alembic/                    # Database migrations
+│   ├── versions/
+│   └── env.py
+│
+├── tests/                      # Unit and integration tests
+│   ├── test_auth.py
+│   ├── test_locations.py
+│   └── test_calculations.py
+│
+├── requirements.txt            # Python dependencies
+├── Dockerfile                  # Container configuration
+├── render.yaml                 # Render deployment config
+└── README.md                   # Backend documentation
+
+================================================================================
+PART 3: DATABASE SCHEMA DESIGN
+================================================================================
+
+1. USERS TABLE:
+---------------
+id: UUID (primary key)
+email: VARCHAR(255) UNIQUE NOT NULL
+username: VARCHAR(100) UNIQUE NOT NULL
+password_hash: VARCHAR(255) NOT NULL
+full_name: VARCHAR(255)
+is_admin: BOOLEAN DEFAULT FALSE
+is_active: BOOLEAN DEFAULT TRUE
+created_at: TIMESTAMP DEFAULT NOW()
+updated_at: TIMESTAMP DEFAULT NOW()
+last_login: TIMESTAMP
+
+2. USER_PROFILES TABLE:
+-----------------------
+id: UUID (primary key)
+user_id: UUID (foreign key -> users.id)
+current_latitude: DECIMAL(10, 8)
+current_longitude: DECIMAL(11, 8)
+last_location_update: TIMESTAMP
+japa_streak_days: INTEGER DEFAULT 0
+pranayama_count: INTEGER DEFAULT 0
+darshan_count: INTEGER DEFAULT 0
+preferred_theme: VARCHAR(20) DEFAULT 'light'
+sunrise_alarm_enabled: BOOLEAN DEFAULT FALSE
+haptic_feedback_enabled: BOOLEAN DEFAULT TRUE
+
+3. SAVED_LOCATIONS TABLE:
+-------------------------
+id: UUID (primary key)
+user_id: UUID (foreign key -> users.id, NULL for global)
+name: VARCHAR(255) NOT NULL
+description: TEXT
+latitude: DECIMAL(10, 8) NOT NULL
+longitude: DECIMAL(11, 8) NOT NULL
+is_default: BOOLEAN DEFAULT FALSE
+is_global: BOOLEAN DEFAULT FALSE (admin can create global locations)
+created_at: TIMESTAMP DEFAULT NOW()
+
+4. SPIRITUAL_LOGS TABLE:
+------------------------
+id: UUID (primary key)
+user_id: UUID (foreign key -> users.id)
+log_type: ENUM('japa', 'pranayama', 'darshan')
+count: INTEGER DEFAULT 1
+location_id: UUID (foreign key -> saved_locations.id, nullable)
+notes: TEXT
+logged_at: TIMESTAMP DEFAULT NOW()
+
+5. EVENTS TABLE:
+---------------
+id: UUID (primary key)
+title: VARCHAR(255) NOT NULL
+description: TEXT
+location_name: VARCHAR(255)
+location_id: UUID (foreign key -> saved_locations.id, nullable)
+event_date: TIMESTAMP NOT NULL
+created_by: UUID (foreign key -> users.id)
+is_published: BOOLEAN DEFAULT FALSE
+created_at: TIMESTAMP DEFAULT NOW()
+
+6. LOCATION_VISITS TABLE:
+-------------------------
+id: UUID (primary key)
+user_id: UUID (foreign key -> users.id)
+location_id: UUID (foreign key -> saved_locations.id)
+visited_at: TIMESTAMP DEFAULT NOW()
+distance_traveled: DECIMAL(10, 2) (in km)
+
+================================================================================
+PART 4: API ENDPOINTS SPECIFICATION
+================================================================================
+
+BASE URL: https://your-app.onrender.com/api/v1
+
+AUTHENTICATION ENDPOINTS:
+-------------------------
+POST   /auth/register          - Register new user
+POST   /auth/login             - Login (returns JWT token)
+POST   /auth/refresh           - Refresh JWT token
+POST   /auth/logout            - Logout (invalidate token)
+GET    /auth/me                - Get current user info
+
+USER ENDPOINTS:
+---------------
+GET    /users/profile          - Get user profile
+PUT    /users/profile          - Update user profile
+GET    /users/stats            - Get spiritual statistics
+DELETE /users/account          - Delete user account
+
+ADMIN ENDPOINTS:
+----------------
+GET    /admin/users            - List all users (admin only)
+GET    /admin/users/{id}       - Get specific user details
+PUT    /admin/users/{id}       - Update user (admin only)
+DELETE /admin/users/{id}       - Delete user (admin only)
+GET    /admin/stats            - Platform-wide statistics
+POST   /admin/locations        - Create global location
+PUT    /admin/events/{id}      - Publish/unpublish events
+
+LOCATION ENDPOINTS:
+-------------------
+POST   /locations/search       - Search location via Gemini AI
+GET    /locations              - List saved locations
+POST   /locations              - Save new location
+GET    /locations/{id}         - Get location details
+DELETE /locations/{id}         - Delete saved location
+GET    /locations/global       - Get global/default locations
+
+COMPASS ENDPOINTS:
+------------------
+POST   /compass/bearing        - Calculate bearing & distance
+                                Body: {current_lat, current_lon, 
+                                       target_lat, target_lon}
+                                Returns: {bearing, distance, 
+                                         alignment_status}
+
+SPIRITUAL TRACKING ENDPOINTS:
+-----------------------------
+POST   /spiritual/japa         - Log Japa session
+POST   /spiritual/pranayama    - Log Pranayama session
+POST   /spiritual/darshan      - Log Darshan visit
+GET    /spiritual/logs         - Get user's spiritual logs
+GET    /spiritual/streaks      - Get current streaks
+
+EVENT ENDPOINTS:
+----------------
+GET    /events                 - List upcoming events
+GET    /events/{id}            - Get event details
+POST   /events                 - Create event (authenticated)
+PUT    /events/{id}            - Update event (creator/admin)
+DELETE /events/{id}            - Delete event (creator/admin)
+
+================================================================================
+PART 5: DETAILED IMPLEMENTATION STEPS
+================================================================================
+
+PHASE 1: PROJECT SETUP (Day 1)
+-------------------------------
+1. Create project directory structure
+2. Initialize Git repository
+3. Create virtual environment: python -m venv venv
+4. Install dependencies:
+   - fastapi
+   - uvicorn[standard]
+   - sqlalchemy[asyncio]
+   - asyncpg (PostgreSQL async driver)
+   - alembic (migrations)
+   - python-jose[cryptography] (JWT)
+   - passlib[bcrypt] (password hashing)
+   - python-multipart (file uploads)
+   - pydantic[email] (validation)
+   - google-generativeai (Gemini AI)
+   - python-dotenv (environment variables)
+   - httpx (async HTTP client)
+
+5. Create requirements.txt
+6. Setup .env file with:
+   - DATABASE_URL
+   - SECRET_KEY
+   - GEMINI_API_KEY
+   - ADMIN_EMAIL
+   - ADMIN_PASSWORD
+
+PHASE 2: DATABASE SETUP (Day 1-2)
+----------------------------------
+1. Configure database.py with async SQLAlchemy
+2. Create all model files in models/
+3. Initialize Alembic: alembic init alembic
+4. Create initial migration
+5. Test database connection locally
+
+PHASE 3: AUTHENTICATION SYSTEM (Day 2-3)
+-----------------------------------------
+1. Implement JWT token generation/verification
+2. Create password hashing utilities
+3. Build auth endpoints (register, login, refresh)
+4. Create authentication middleware
+5. Implement role-based access control (admin/user)
+6. Test authentication flow
+
+PHASE 4: CORE API ENDPOINTS (Day 3-5)
+--------------------------------------
+1. Implement user profile endpoints
+2. Create location search with Gemini integration
+3. Build compass/bearing calculation endpoints
+4. Implement spiritual tracking endpoints
+5. Create events CRUD endpoints
+6. Add admin-specific endpoints
+7. Test all endpoints with sample data
+
+PHASE 5: ADMIN FEATURES (Day 5-6)
+----------------------------------
+1. Admin dashboard data aggregation
+2. User management endpoints
+3. Global location management
+4. Event moderation
+5. Platform statistics
+6. Bulk operations support
+
+PHASE 6: TESTING & OPTIMIZATION (Day 6-7)
+------------------------------------------
+1. Write unit tests for services
+2. Integration tests for API endpoints
+3. Load testing for performance
+4. Optimize database queries
+5. Add caching where appropriate
+6. Security audit
+
+PHASE 7: DEPLOYMENT ON RENDER (Day 7-8)
+----------------------------------------
+1. Create Render account
+2. Setup PostgreSQL database on Render
+3. Configure environment variables
+4. Create render.yaml configuration
+5. Deploy backend service
+6. Run database migrations
+7. Test production endpoints
+8. Setup monitoring and logging
+
+================================================================================
+PART 6: RENDER DEPLOYMENT CONFIGURATION
+================================================================================
+
+RENDER.YAML:
+------------
+services:
+  - type: web
+    name: darshan-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: darshan-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+    healthCheckPath: /health
+
+databases:
+  - name: darshan-db
+    databaseName: darshan
+    user: darshan_user
+    plan: free
+
+FREE TIER LIMITATIONS:
+----------------------
+- 750 hours/month (sufficient for 24/7 operation)
+- Spins down after 15 minutes of inactivity
+- Cold start: 30-60 seconds
+- 512 MB RAM
+- PostgreSQL: 1 GB storage, 97 connection limit
+
+OPTIMIZATION FOR FREE TIER:
+---------------------------
+1. Implement connection pooling (max 10 connections)
+2. Add health check endpoint to prevent spin-down
+3. Use caching for frequently accessed data
+4. Optimize queries to reduce database load
+5. Implement request rate limiting
+
+================================================================================
+PART 7: MOBILE APP ARCHITECTURE (iOS & Android)
+================================================================================
+
+APPROACH: REACT NATIVE (Recommended)
+-------------------------------------
+Advantages:
+- Reuse existing React knowledge
+- Single codebase for iOS & Android
+- Access to native device sensors
+- Large ecosystem and community
+
+ALTERNATIVE: FLUTTER
+--------------------
+Advantages:
+- Better performance
+- Beautiful UI out of the box
+- Growing ecosystem
+
+MOBILE APP STRUCTURE:
+---------------------
+mobile/
+├── src/
+│   ├── screens/          # Home, Dashboard, Programs, Settings
+│   ├── components/       # Compass, LocationSearch, etc.
+│   ├── services/         # API client, sensor management
+│   ├── hooks/            # Custom hooks
+│   ├── navigation/       # React Navigation setup
+│   ├── store/            # State management (Redux/Zustand)
+│   └── utils/            # Helpers, calculations
+├── android/              # Android-specific code
+├── ios/                  # iOS-specific code
+└── package.json
+
+KEY MOBILE FEATURES:
+--------------------
+1. Native Geolocation API
+2. Native Compass/Magnetometer
+3. Push notifications (Brahma Muhurta alarm)
+4. Offline mode with local storage
+5. Background location tracking
+6. Haptic feedback
+7. Biometric authentication (Face ID, Touch ID)
+
+MOBILE-SPECIFIC ENDPOINTS:
+--------------------------
+POST   /mobile/register-device    - Register device for push notifications
+POST   /mobile/sync               - Sync offline data
+GET    /mobile/config             - Get app configuration
+
+================================================================================
+PART 8: ADMIN USER IMPLEMENTATION
+================================================================================
+
+ADMIN CAPABILITIES:
+-------------------
+1. VIEW ALL USERS:
+   - List all registered users
+   - View user profiles and statistics
+   - Search and filter users
+
+2. USER MANAGEMENT:
+   - Activate/deactivate user accounts
+   - Reset user passwords
+   - Delete user accounts
+   - View user activity logs
+
+3. LOCATION MANAGEMENT:
+   - Create global/default locations
+   - Edit location details
+   - Delete locations
+   - View location usage statistics
+
+4. EVENT MANAGEMENT:
+   - Create, edit, delete events
+   - Publish/unpublish events
+   - View event attendance
+
+5. PLATFORM STATISTICS:
+   - Total users count
+   - Active users (last 30 days)
+   - Total spiritual logs
+   - Popular locations
+   - Event participation rates
+
+6. DATA EXPORT:
+   - Export user data (GDPR compliance)
+   - Export analytics reports
+   - Backup database
+
+ADMIN DASHBOARD DATA:
+---------------------
+GET /admin/dashboard returns:
+{
+  "total_users": 1250,
+  "active_users_30d": 450,
+  "total_japa_logs": 15000,
+  "total_darshan_visits": 3200,
+  "popular_locations": [...],
+  "recent_registrations": [...],
+  "platform_health": {...}
+}
+
+ADMIN AUTHENTICATION:
+---------------------
+1. First admin created via environment variables
+2. Admins can promote other users to admin
+3. Admin actions logged for audit trail
+4. Separate admin JWT claims
+
+================================================================================
+PART 9: SECURITY CONSIDERATIONS
+================================================================================
+
+1. AUTHENTICATION:
+   - JWT tokens with 24-hour expiry
+   - Refresh tokens with 30-day expiry
+   - Secure password hashing (bcrypt, cost factor 12)
+   - Rate limiting on auth endpoints
+
+2. AUTHORIZATION:
+   - Role-based access control (RBAC)
+   - Resource-level permissions
+   - Admin-only endpoints protected
+
+3. DATA PROTECTION:
+   - HTTPS only (enforced by Render)
+   - SQL injection prevention (SQLAlchemy ORM)
+   - Input validation (Pydantic)
+   - CORS configuration
+
+4. API SECURITY:
+   - Rate limiting (100 requests/minute per user)
+   - Request size limits
+   - API key for Gemini service (server-side only)
+
+5. PRIVACY:
+   - User location data encrypted at rest
+   - Optional location sharing
+   - GDPR compliance (data export, deletion)
+
+================================================================================
+PART 10: PERFORMANCE OPTIMIZATION
+================================================================================
+
+1. DATABASE:
+   - Indexes on frequently queried columns
+   - Connection pooling
+   - Query optimization
+   - Pagination for large datasets
+
+2. CACHING:
+   - Redis for session storage (optional)
+   - In-memory cache for global locations
+   - HTTP caching headers
+
+3. API:
+   - Async/await throughout
+   - Background tasks for heavy operations
+   - Compression (gzip)
+
+4. MOBILE:
+   - Local caching of user data
+   - Optimistic UI updates
+   - Lazy loading of images
+   - Debounced API calls
+
+================================================================================
+PART 11: MIGRATION STRATEGY (React to Mobile)
+================================================================================
+
+STEP 1: BACKEND FIRST
+----------------------
+1. Build and deploy Python backend
+2. Test all endpoints
+3. Ensure admin features work
+
+STEP 2: KEEP REACT WEB APP
+---------------------------
+1. Update React app to use new backend API
+2. Replace client-side calculations with API calls
+3. Implement authentication
+4. Deploy updated web app
+
+STEP 3: BUILD MOBILE APP
+-------------------------
+1. Initialize React Native project
+2. Port React components to React Native
+3. Integrate native sensors
+4. Connect to backend API
+5. Test on iOS and Android
+6. Submit to App Store and Play Store
+
+PARALLEL OPERATION:
+-------------------
+- Web app and mobile app can coexist
+- Both use same backend API
+- Shared user accounts
+- Data syncs across platforms
+
+================================================================================
+PART 12: COST ANALYSIS (FREE TIER)
+================================================================================
+
+RENDER FREE TIER:
+-----------------
+- Web Service: FREE (750 hours/month)
+- PostgreSQL: FREE (1 GB storage)
+- Total: $0/month
+
+LIMITATIONS:
+------------
+- Service spins down after 15 min inactivity
+- Cold start delays (30-60 seconds)
+- 512 MB RAM limit
+- 1 GB database storage
+
+WHEN TO UPGRADE:
+----------------
+- More than 100 active users
+- Need 24/7 uptime without cold starts
+- Database exceeds 1 GB
+- Need more than 512 MB RAM
+
+PAID TIER COSTS:
+----------------
+- Web Service: $7/month (always on)
+- PostgreSQL: $7/month (10 GB storage)
+- Total: $14/month
+
+================================================================================
+PART 13: DEVELOPMENT TIMELINE
+================================================================================
+
+WEEK 1: Backend Development
+----------------------------
+Day 1-2: Project setup, database models
+Day 3-4: Authentication system
+Day 5-6: Core API endpoints
+Day 7: Testing and bug fixes
+
+WEEK 2: Deployment & Mobile Prep
+---------------------------------
+Day 8-9: Render deployment, production testing
+Day 10-11: React Native project setup
+Day 12-13: Port core components
+Day 14: Integration testing
+
+WEEK 3: Mobile Development
+---------------------------
+Day 15-17: Complete mobile UI
+Day 18-19: Native sensor integration
+Day 20-21: Testing and optimization
+
+WEEK 4: Launch Preparation
+---------------------------
+Day 22-23: Beta testing
+Day 24-25: Bug fixes and polish
+Day 26-27: App store submission
+Day 28: Documentation and launch
+
+================================================================================
+PART 14: TESTING STRATEGY
+================================================================================
+
+BACKEND TESTING:
+----------------
+1. Unit tests for services (pytest)
+2. Integration tests for API endpoints
+3. Database migration tests
+4. Load testing (locust)
+5. Security testing (OWASP)
+
+MOBILE TESTING:
+---------------
+1. Unit tests (Jest)
+2. Component tests (React Native Testing Library)
+3. E2E tests (Detox)
+4. Device testing (iOS Simulator, Android Emulator)
+5. Beta testing (TestFlight, Google Play Beta)
+
+================================================================================
+PART 15: MONITORING & MAINTENANCE
+================================================================================
+
+MONITORING:
+-----------
+1. Render built-in metrics
+2. Error tracking (Sentry - free tier)
+3. API response time monitoring
+4. Database performance monitoring
+5. User analytics (optional)
+
+MAINTENANCE:
+------------
+1. Regular dependency updates
+2. Security patches
+3. Database backups (Render automatic)
+4. Performance optimization
+5. User feedback incorporation
+
+================================================================================
+PART 16: FUTURE ENHANCEMENTS
+================================================================================
+
+1. SOCIAL FEATURES:
+   - Share spiritual progress
+   - Community challenges
+   - Group events
+
+2. ADVANCED TRACKING:
+   - Route history
+   - Pilgrimage planning
+   - Multi-destination navigation
+
+3. CONTENT:
+   - Daily mantras
+   - Spiritual teachings
+   - Audio/video content
+
+4. INTEGRATIONS:
+   - Calendar sync
+   - Wearable devices
+   - Smart home (morning alarm)
+
+5. GAMIFICATION:
+   - Achievements
+   - Leaderboards
+   - Badges
+
+================================================================================
+END OF IMPLEMENTATION PLAN
+================================================================================
+
+This plan provides a complete roadmap for converting your React spiritual 
+navigation app to a production-ready system with Python backend, admin 
+features, and mobile app support, all deployable on Render's free tier.
+
+Next steps: Begin with Phase 1 (Project Setup) and proceed sequentially.

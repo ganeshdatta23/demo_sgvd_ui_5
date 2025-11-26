@@ -1,0 +1,7 @@
+{
+  "name": "Darshan Directions",
+  "description": "A spiritual navigation guide to Sri Ganapathy Sachidananda Swamiji's location using precision compass and sensor fusion.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
