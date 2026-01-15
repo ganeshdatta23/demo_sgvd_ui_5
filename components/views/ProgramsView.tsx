@@ -5,7 +5,7 @@ import { COLORS } from '../../constants';
 import { useEventsListEvents } from '../../src/generated/hooks/useEvents';
 
 export const ProgramsView: React.FC<BaseViewProps> = ({ isDarkMode }) => {
-  const { data: events = [], isLoading: loading } = useEventsListEvents();
+  const { data: events = [], isLoading: loading, error, isError } = useEventsListEvents();
   const cardClass = isDarkMode ? COLORS.dark.card : COLORS.light.card;
   const subTextClass = isDarkMode ? COLORS.dark.subText : COLORS.light.subText;
 
@@ -22,6 +22,28 @@ export const ProgramsView: React.FC<BaseViewProps> = ({ isDarkMode }) => {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-gold border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+            <Calendar className="text-red-400" size={32} />
+          </div>
+          <h3 className="text-lg font-bold text-white mb-2">Failed to load events</h3>
+          <p className="text-sm text-white/60 mb-4">
+            {error instanceof Error ? error.message : 'Unable to connect to the server'}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-gold text-stone-900 px-6 py-2 rounded-xl font-bold hover:bg-yellow-400 transition-all"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }

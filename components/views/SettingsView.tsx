@@ -3,6 +3,7 @@ import { Moon, Sun, AlarmClock, AlertTriangle } from 'lucide-react';
 import { BaseViewProps } from '../../types';
 import { COLORS, APP_VERSION } from '../../constants';
 import { TokenManager } from '../../api/config';
+import { useConfigGetAppConfig } from '../../src/generated/hooks/useConfig';
 
 interface SettingsViewProps extends BaseViewProps {
   setIsDarkMode: (v: boolean) => void;
@@ -18,6 +19,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const cardClass = isDarkMode ? COLORS.dark.card : COLORS.light.card;
+  const { data: appConfig } = useConfigGetAppConfig();
 
   useEffect(() => {
     setIsLoggedIn(TokenManager.isAuthenticated());
@@ -93,7 +95,46 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      <div className="p-5 bg-red-900/20 border border-red-500/20 rounded-2xl flex gap-4 backdrop-blur-xl">
+      {/* Version Information */}
+      <div className={`rounded-3xl border p-6 mb-6 ${cardClass}`}>
+        <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Version Information</h3>
+
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <span className={`text-sm ${isDarkMode ? 'text-stone-400' : 'text-white/60'}`}>Client Version</span>
+            <span className="text-sm font-mono font-bold text-white">{APP_VERSION}</span>
+          </div>
+
+          {appConfig && (
+            <>
+              <div className="flex justify-between items-center">
+                <span className={`text-sm ${isDarkMode ? 'text-stone-400' : 'text-white/60'}`}>Server Version</span>
+                <span className="text-sm font-mono font-bold text-white">{appConfig.app_version}</span>
+              </div>
+
+              {appConfig.app_version !== APP_VERSION && (
+                <div className="mt-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-2">
+                  <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={16} />
+                  <div className="text-xs text-amber-100/80">
+                    A new version is available. Please refresh to update.
+                  </div>
+                </div>
+              )}
+
+              {appConfig.expiry_date && (
+                <div className="flex justify-between items-center pt-2 border-t border-white/5">
+                  <span className={`text-xs ${isDarkMode ? 'text-stone-500' : 'text-white/40'}`}>Expires</span>
+                  <span className="text-xs font-mono text-stone-400">
+                    {new Date(appConfig.expiry_date).toLocaleDateString()}
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="p-5 bg-red-900/20 border border-red-500/20 rounded-2xl flex gap-4 backdrop-blur-xl">\
         <AlertTriangle className="text-red-400 shrink-0 mt-0.5" size={20} />
         <div className="text-sm text-red-100/80 leading-relaxed">
           Please pay attention to your surroundings. Do not walk while staring at the compass.

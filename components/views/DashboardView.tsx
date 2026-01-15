@@ -4,6 +4,7 @@ import { LocationTarget, Coordinates, BaseViewProps } from '../../types';
 import { COLORS } from '../../constants';
 import {
     useSpiritualGetSpiritualStats,
+    useSpiritualGetSpiritualStatsToday,
     useSpiritualLogJapa,
     useSpiritualLogPranayama,
     useSpiritualLogDarshan
@@ -31,10 +32,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     formatDistance
 }) => {
     const { data: stats, refetch: refetchStats } = useSpiritualGetSpiritualStats({ enabled: isLoggedIn });
+    const { data: todayStats, refetch: refetchTodayStats } = useSpiritualGetSpiritualStatsToday({ enabled: isLoggedIn });
 
-    const japaMutation = useSpiritualLogJapa({ onSuccess: () => refetchStats() });
-    const pranayamaMutation = useSpiritualLogPranayama({ onSuccess: () => refetchStats() });
-    const darshanMutation = useSpiritualLogDarshan({ onSuccess: () => refetchStats() });
+    const japaMutation = useSpiritualLogJapa({
+        onSuccess: () => {
+            refetchStats();
+            refetchTodayStats();
+        }
+    });
+    const pranayamaMutation = useSpiritualLogPranayama({
+        onSuccess: () => {
+            refetchStats();
+            refetchTodayStats();
+        }
+    });
+    const darshanMutation = useSpiritualLogDarshan({
+        onSuccess: () => {
+            refetchStats();
+            refetchTodayStats();
+        }
+    });
 
     const cardClass = isDarkMode ? COLORS.dark.card : COLORS.light.card;
     const subTextClass = isDarkMode ? COLORS.dark.subText : COLORS.light.subText;
@@ -145,6 +162,64 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <p className="text-[10px] text-stone-500 mt-1">Total Cycles</p>
                 </div>
             </div>
+
+            {/* Today's Progress */}
+            {todayStats && (
+                <div className={`rounded-3xl border p-6 mb-10 ${cardClass}`}>
+                    <div className="flex items-center justify-between mb-6">
+                        <h4 className="text-lg font-bold text-white">Today's Progress</h4>
+                        <span className="text-xs text-gold font-bold uppercase tracking-widest">
+                            {new Date().toLocaleDateString('default', { month: 'short', day: 'numeric' })}
+                        </span>
+                    </div>
+
+                    <div className="space-y-4">
+                        {/* Today's Japa */}
+                        <div>
+                            <div className="flex justify-between items-center mb-2">
+                                <span className={`text-sm ${subTextClass}`}>Japa Rounds</span>
+                                <span className="text-sm font-mono font-bold text-white">{todayStats.japa_count_today || 0}</span>
+                            </div>
+                            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-500"
+                                    style={{ width: `${Math.min((todayStats.japa_count_today || 0) / 16 * 100, 100)}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Today's Pranayama */}
+                        <div>
+                            <div className="flex justify-between items-center mb-2">
+                                <span className={`text-sm ${subTextClass}`}>Pranayama Cycles</span>
+                                <span className="text-sm font-mono font-bold text-white">{todayStats.pranayama_count_today || 0}</span>
+                            </div>
+                            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-sky-500 to-sky-400 rounded-full transition-all duration-500"
+                                    style={{ width: `${Math.min((todayStats.pranayama_count_today || 0) / 20 * 100, 100)}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Today's Darshan */}
+                        <div>
+                            <div className="flex justify-between items-center mb-2">
+                                <span className={`text-sm ${subTextClass}`}>Darshan</span>
+                                <span className={`text-sm font-bold ${todayStats.darshan_count_today > 0 ? 'text-emerald-400' : 'text-white/40'}`}>
+                                    {todayStats.darshan_count_today > 0 ? 'Completed' : 'Pending'}
+                                </span>
+                            </div>
+                            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500"
+                                    style={{ width: `${todayStats.darshan_count_today > 0 ? '100' : '0'}%` }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Action Sections */}
             <div className="space-y-6">
