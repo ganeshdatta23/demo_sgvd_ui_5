@@ -34,6 +34,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const { data: stats, refetch: refetchStats } = useSpiritualGetSpiritualStats({ enabled: isLoggedIn });
     const { data: todayStats, refetch: refetchTodayStats } = useSpiritualGetSpiritualStatsToday({ enabled: isLoggedIn });
 
+    // Debug: Log the API response to see the actual structure
+    React.useEffect(() => {
+        if (todayStats) {
+            console.log('Today Stats Response:', todayStats);
+        }
+    }, [todayStats]);
+
     const japaMutation = useSpiritualLogJapa({
         onSuccess: () => {
             refetchStats();
@@ -178,12 +185,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         <div>
                             <div className="flex justify-between items-center mb-2">
                                 <span className={`text-sm ${subTextClass}`}>Japa Rounds</span>
-                                <span className="text-sm font-mono font-bold text-white">{todayStats.japa_count_today || 0}</span>
+                                <span className="text-sm font-mono font-bold text-white">
+                                    {(todayStats as any).japa_today || todayStats.japa_count_today || 0}
+                                </span>
                             </div>
                             <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-500"
-                                    style={{ width: `${Math.min((todayStats.japa_count_today || 0) / 16 * 100, 100)}%` }}
+                                    style={{ width: `${Math.min((((todayStats as any).japa_today || todayStats.japa_count_today || 0) / 16) * 100, 100)}%` }}
                                 />
                             </div>
                         </div>
@@ -192,12 +201,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         <div>
                             <div className="flex justify-between items-center mb-2">
                                 <span className={`text-sm ${subTextClass}`}>Pranayama Cycles</span>
-                                <span className="text-sm font-mono font-bold text-white">{todayStats.pranayama_count_today || 0}</span>
+                                <span className="text-sm font-mono font-bold text-white">
+                                    {(todayStats as any).pranayama_today || todayStats.pranayama_count_today || 0}
+                                </span>
                             </div>
                             <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-gradient-to-r from-sky-500 to-sky-400 rounded-full transition-all duration-500"
-                                    style={{ width: `${Math.min((todayStats.pranayama_count_today || 0) / 20 * 100, 100)}%` }}
+                                    style={{ width: `${Math.min((((todayStats as any).pranayama_today || todayStats.pranayama_count_today || 0) / 20) * 100, 100)}%` }}
                                 />
                             </div>
                         </div>
@@ -206,14 +217,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         <div>
                             <div className="flex justify-between items-center mb-2">
                                 <span className={`text-sm ${subTextClass}`}>Darshan</span>
-                                <span className={`text-sm font-bold ${todayStats.darshan_count_today > 0 ? 'text-emerald-400' : 'text-white/40'}`}>
-                                    {todayStats.darshan_count_today > 0 ? 'Completed' : 'Pending'}
+                                <span className={`text-sm font-bold ${((todayStats as any).darshan_today || todayStats.darshan_count_today || 0) > 0 ? 'text-emerald-400' : 'text-white/40'}`}>
+                                    {((todayStats as any).darshan_today || todayStats.darshan_count_today || 0) > 0 ? 'Completed' : 'Pending'}
                                 </span>
                             </div>
                             <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500"
-                                    style={{ width: `${todayStats.darshan_count_today > 0 ? '100' : '0'}%` }}
+                                    style={{ width: `${((todayStats as any).darshan_today || todayStats.darshan_count_today || 0) > 0 ? 100 : 0}%` }}
                                 />
                             </div>
                         </div>
