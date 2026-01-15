@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "npm run build:generate"
   publish = "dist"
   base = "."
 
@@ -9,10 +9,10 @@
   status = 200
 
 [context.production]
-  command = "npm run build"
+  command = "npm run build:generate"
   
 [context.deploy-preview]
-  command = "npm run build"
+  command = "npm run build:generate"
   
 [context.branch-deploy]
-  command = "npm run build"
+  command = "npm run build:generate"

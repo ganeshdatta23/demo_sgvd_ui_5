@@ -1,71 +1,89 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ChevronRight, Calendar } from 'lucide-react';
 import { BaseViewProps } from '../../types';
 import { COLORS } from '../../constants';
+import { useEventsListEvents } from '../../src/generated/hooks/useEvents';
 
 export const ProgramsView: React.FC<BaseViewProps> = ({ isDarkMode }) => {
-  const [events, setEvents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: events = [], isLoading: loading } = useEventsListEvents();
   const cardClass = isDarkMode ? COLORS.dark.card : COLORS.light.card;
   const subTextClass = isDarkMode ? COLORS.dark.subText : COLORS.light.subText;
-
-  useEffect(() => {
-    loadEvents();
-  }, []);
-
-  const loadEvents = async () => {
-    try {
-      const { apiClient } = await import('../../api/client');
-      const data = await apiClient.getEvents();
-      setEvents(data);
-    } catch (error) {
-      console.error('Failed to load events:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return {
-      month: date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
       day: date.getDate(),
-      time: date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+      month: date.toLocaleString('default', { month: 'short' }).toUpperCase(),
+      time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
   };
 
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-gold border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex-1 flex flex-col w-full p-6 pt-12 pb-24 animate-slide-up overflow-y-auto no-scrollbar">
-      <h2 className="text-3xl font-display font-bold text-white mb-8 drop-shadow-lg pt-safe">Upcoming Events</h2>
+    <div className="flex-1 overflow-y-auto w-full px-6 py-8 pb-32">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="p-3 rounded-2xl bg-gold/10 border border-gold/20">
+          <Calendar className="text-gold" size={24} />
+        </div>
+        <div>
+          <h2 className="text-2xl font-display font-bold text-white">Programs</h2>
+          <p className={subTextClass}>Upcoming events & sessions</p>
+        </div>
+      </div>
+
       <div className="space-y-4">
-          {loading ? (
-            <div className={`p-8 rounded-2xl border text-center ${cardClass}`}>
-              <div className="animate-spin w-8 h-8 border-2 border-gold border-t-transparent rounded-full mx-auto mb-3"></div>
-              <p className={`text-sm ${subTextClass}`}>Loading events...</p>
-            </div>
-          ) : events.length > 0 ? (
-            events.map((event) => {
-              const { month, day, time } = formatDate(event.event_date);
-              return (
-                <div key={event.id} className={`rounded-2xl p-5 flex gap-5 items-center active:scale-95 transition-transform border ${cardClass}`}>
-                  <div className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center font-bold border shadow-lg ${isDarkMode ? 'bg-stone-800 border-stone-700 text-gold' : 'bg-black/30 border-white/10 text-white backdrop-blur-md'}`}>
-                    <span className={`text-[10px] uppercase tracking-wider opacity-80 mb-0.5`}>{month}</span>
-                    <span className="text-2xl leading-none font-display">{day}</span>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-white font-bold text-lg leading-tight">{event.title}</h3>
-                    <p className={`text-xs mt-1.5 ${subTextClass}`}>{event.location_name || 'Location TBA'} • {time}</p>
-                  </div>
-                  <ChevronRight size={20} className="opacity-40" />
+        {events.map((event) => {
+          const { day, month, time } = formatDate(event.event_date);
+          return (
+            <div
+              key={event.id}
+              className={`group relative overflow-hidden rounded-3xl border p-5 transition-all duration-300 hover:scale-[1.02] active:scale-95 ${cardClass}`}
+            >
+              <div className="flex gap-5">
+                {/* Date Badge */}
+                <div className="flex flex-col items-center justify-center min-w-[64px] h-[64px] rounded-2xl bg-gold/10 border border-gold/20">
+                  <span className="text-gold text-2xl font-bold leading-none">{day}</span>
+                  <span className="text-gold/60 text-[10px] font-bold uppercase tracking-wider mt-1">{month}</span>
                 </div>
-              );
-            })
-          ) : (
-            <div className={`p-8 rounded-2xl border text-center ${cardClass}`}>
-              <Calendar size={40} className="mx-auto mb-3 opacity-30" />
-              <p className={`text-sm ${subTextClass}`}>No upcoming events</p>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <h3 className="font-bold text-lg text-white truncate group-hover:text-gold transition-colors">
+                      {event.title}
+                    </h3>
+                    <ChevronRight className="text-white/20 group-hover:text-gold transition-colors" size={20} />
+                  </div>
+
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className="text-gold/80 font-medium">{time}</span>
+                    <span className="w-1 h-1 rounded-full bg-white/10" />
+                    <span className={`${subTextClass} truncate`}>{event.location_name}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Hover Effect Background */}
+              <div className="absolute inset-0 bg-gold/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             </div>
-          )}
+          );
+        })}
+
+        {events.length === 0 && (
+          <div className="text-center py-20">
+            <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
+              <Calendar className="text-white/20" size={32} />
+            </div>
+            <p className="text-white/40">No upcoming programs scheduled</p>
+          </div>
+        )}
       </div>
     </div>
   );

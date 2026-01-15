@@ -6,11 +6,11 @@ import {
     UserOut
 } from '../index';
 
-export const useUsersGetProfile = (variables: { userId: string, }, options?: UseQueryOptions<UserOut, Error>) => {
+export const useUsersGetProfile = (variables: { userId: string, }, options?: Partial<UseQueryOptions<UserOut, Error>>) => {
     return useQuery({
-        queryKey: ['UsersService', 'getProfileSgvdUsersProfileUserIdGet', variables],
+        queryKey: ['Users', 'getProfileSgvdUsersProfileUserIdGet', variables],
         queryFn: () => appClient.users.getProfileSgvdUsersProfileUserIdGet(variables),
         ...options,
-    });
+    } as UseQueryOptions<UserOut, Error>);
 };
 

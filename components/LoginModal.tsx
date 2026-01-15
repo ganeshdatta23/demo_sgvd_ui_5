@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { X, LogIn, UserPlus } from 'lucide-react';
+import { useAuthLogin, useAuthRegister } from '../src/generated/hooks/useAuth';
+import { TokenManager } from '../api/config';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -14,37 +16,46 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+
+  const loginMutation = useAuthLogin({
+    onSuccess: (data) => {
+      TokenManager.setToken(data.access_token);
+      onSuccess();
+      onClose();
+    },
+    onError: (err: any) => {
+      setError(err.message || 'Login failed');
+    }
+  });
+
+  const registerMutation = useAuthRegister({
+    onSuccess: () => {
+      // Auto login after registration
+      loginMutation.mutate({ requestBody: { email, password } });
+    },
+    onError: (err: any) => {
+      setError(err.message || 'Registration failed');
+    }
+  });
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
-    try {
-      const { apiClient } = await import('../api/client');
-      
-      if (isLogin) {
-        await apiClient.login(email, password);
-      } else {
-        await apiClient.register(email, password, fullName);
-        await apiClient.login(email, password);
-      }
-      
-      onSuccess();
-      onClose();
-    } catch (err: any) {
-      setError(err.message || 'Authentication failed');
-    } finally {
-      setLoading(false);
+    if (isLogin) {
+      loginMutation.mutate({ requestBody: { email, password } });
+    } else {
+      registerMutation.mutate({ requestBody: { email, username: email, password, full_name: fullName } });
     }
   };
 
-  const cardClass = isDarkMode 
-    ? 'bg-stone-900 border-stone-800' 
-    : 'bg-white/10 border-white/20 backdrop-blur-xl';
+  const loading = loginMutation.isPending || registerMutation.isPending;
+
+  const cardClass = isDarkMode
+    ? "bg-stone-900 border-stone-800"
+    : "bg-white/10 border-white/20 backdrop-blur-xl";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -69,7 +80,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
               required
             />
           )}
-          
+
           <input
             type="email"
             placeholder="Email"
@@ -78,7 +89,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
             className={`w-full px-4 py-3 rounded-xl border ${isDarkMode ? 'bg-stone-950 border-stone-800 text-white' : 'bg-black/20 border-white/10 text-white'} focus:outline-none focus:border-gold`}
             required
           />
-          
+
           <input
             type="password"
             placeholder="Password"

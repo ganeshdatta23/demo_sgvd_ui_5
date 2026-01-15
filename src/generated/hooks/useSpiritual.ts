@@ -27,19 +27,19 @@ export const useSpiritualLogDarshan = (options?: UseMutationOptions<any, Error, 
     });
 };
 
-export const useSpiritualGetSpiritualStats = (options?: UseQueryOptions<any, Error>) => {
+export const useSpiritualGetSpiritualStats = (options?: Partial<UseQueryOptions<any, Error>>) => {
     return useQuery({
-        queryKey: ['SpiritualService', 'getSpiritualStatsSgvdSpiritualStatsGet'],
+        queryKey: ['Spiritual', 'getSpiritualStatsSgvdSpiritualStatsGet'],
         queryFn: () => appClient.spiritual.getSpiritualStatsSgvdSpiritualStatsGet(),
         ...options,
-    });
+    } as UseQueryOptions<any, Error>);
 };
 
-export const useSpiritualGetSpiritualStatsToday = (options?: UseQueryOptions<any, Error>) => {
+export const useSpiritualGetSpiritualStatsToday = (options?: Partial<UseQueryOptions<any, Error>>) => {
     return useQuery({
-        queryKey: ['SpiritualService', 'getSpiritualStatsTodaySgvdSpiritualStatsTodayGet'],
+        queryKey: ['Spiritual', 'getSpiritualStatsTodaySgvdSpiritualStatsTodayGet'],
         queryFn: () => appClient.spiritual.getSpiritualStatsTodaySgvdSpiritualStatsTodayGet(),
         ...options,
-    });
+    } as UseQueryOptions<any, Error>);
 };
 

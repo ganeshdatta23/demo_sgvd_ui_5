@@ -7,12 +7,12 @@ import {
     AppConfigUpdate
 } from '../index';
 
-export const useConfigGetAppConfig = (options?: UseQueryOptions<AppConfigOut, Error>) => {
+export const useConfigGetAppConfig = (options?: Partial<UseQueryOptions<AppConfigOut, Error>>) => {
     return useQuery({
-        queryKey: ['ConfigService', 'getAppConfigSgvdConfigAppGet'],
+        queryKey: ['Config', 'getAppConfigSgvdConfigAppGet'],
         queryFn: () => appClient.config.getAppConfigSgvdConfigAppGet(),
         ...options,
-    });
+    } as UseQueryOptions<AppConfigOut, Error>);
 };
 
 export const useConfigUpdateAppConfig = (options?: UseMutationOptions<AppConfigOut, Error, { requestBody: AppConfigUpdate, }>) => {

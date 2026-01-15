@@ -7,12 +7,12 @@ import {
     EventOut
 } from '../index';
 
-export const useEventsListEvents = (options?: UseQueryOptions<Array<EventOut>, Error>) => {
+export const useEventsListEvents = (options?: Partial<UseQueryOptions<Array<EventOut>, Error>>) => {
     return useQuery({
-        queryKey: ['EventsService', 'listEventsSgvdEventsGet'],
+        queryKey: ['Events', 'listEventsSgvdEventsGet'],
         queryFn: () => appClient.events.listEventsSgvdEventsGet(),
         ...options,
-    });
+    } as UseQueryOptions<Array<EventOut>, Error>);
 };
 
 export const useEventsCreateBulkEvents = (options?: UseMutationOptions<Array<EventOut>, Error, { requestBody: BulkEventCreate, }>) => {

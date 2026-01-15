@@ -27,7 +27,7 @@ export default function App() {
     });
   }, []);
   const [sunriseAlarm, setSunriseAlarm] = useState(false);
-  
+
   // Global Sensor State
   const { coords, heading, error, requestCompassPermission, permissionGranted } = useSensors();
   const { bearing, distance, isAligned, angleDiff } = useBearing(coords, target.coords, heading);
@@ -41,7 +41,7 @@ export default function App() {
     switch (activeTab) {
       case 'home':
         return (
-          <HomeView 
+          <HomeView
             isDarkMode={isDarkMode}
             target={target}
             heading={heading}
@@ -53,12 +53,13 @@ export default function App() {
             permissionGranted={permissionGranted}
             requestCompassPermission={requestCompassPermission}
             formatDistance={formatDistance}
+            setTarget={setTarget}
           />
         );
 
       case 'dashboard':
         return (
-          <DashboardView 
+          <DashboardView
             isDarkMode={isDarkMode}
             target={target}
             coords={coords}
@@ -80,8 +81,8 @@ export default function App() {
 
       case 'settings':
         return (
-          <SettingsView 
-            isDarkMode={isDarkMode} 
+          <SettingsView
+            isDarkMode={isDarkMode}
             setIsDarkMode={setIsDarkMode}
             sunriseAlarm={sunriseAlarm}
             setSunriseAlarm={setSunriseAlarm}
@@ -94,15 +95,15 @@ export default function App() {
     <div className={`relative w-full h-screen flex flex-col items-center overflow-hidden font-sans transition-all duration-1000 ease-in-out
         ${isDarkMode ? COLORS.dark.background : COLORS.light.background} 
         ${isDarkMode ? 'text-stone-100' : 'text-white'}`}>
-      
+
       {/* Background Effects */}
       {!isDarkMode && (
-          <>
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 animate-pulse-slow pointer-events-none mix-blend-overlay"></div>
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[150%] h-[60%] bg-amber-600/20 blur-[100px] rounded-full pointer-events-none"></div>
-          </>
+        <>
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 animate-pulse-slow pointer-events-none mix-blend-overlay"></div>
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[150%] h-[60%] bg-amber-600/20 blur-[100px] rounded-full pointer-events-none"></div>
+        </>
       )}
-      
+
       {/* Dark Mode Ambient Glow */}
       {isDarkMode && (
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-stone-900/80 via-stone-950 to-black pointer-events-none"></div>
@@ -110,17 +111,17 @@ export default function App() {
 
       {/* Error Banner */}
       {error && (
-         <div className="absolute top-24 z-50 bg-red-500/90 text-white px-6 py-3 rounded-full text-sm font-medium flex items-center gap-3 shadow-xl backdrop-blur-md animate-slide-down border border-red-400/30">
-           <AlertTriangle size={16} />
-           {error}
-         </div>
+        <div className="absolute top-24 z-50 bg-red-500/90 text-white px-6 py-3 rounded-full text-sm font-medium flex items-center gap-3 shadow-xl backdrop-blur-md animate-slide-down border border-red-400/30">
+          <AlertTriangle size={16} />
+          {error}
+        </div>
       )}
 
       {renderContent()}
 
       <BottomNav currentTab={activeTab} onTabChange={setActiveTab} isDarkMode={isDarkMode} />
-      
-      <LoginModal 
+
+      <LoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
         onSuccess={() => setIsLoggedIn(true)}

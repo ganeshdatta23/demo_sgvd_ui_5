@@ -11,9 +11,6 @@ node_modules
 dist
 dist-ssr
 *.local
-src\generated\core
-src\generated\models
-src\generated\services
 
 # Environment files
 .env

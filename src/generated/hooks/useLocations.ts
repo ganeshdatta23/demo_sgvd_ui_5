@@ -7,12 +7,12 @@ import {
     LocationUpdateResponse
 } from '../index';
 
-export const useLocationsGetLocations = (options?: UseQueryOptions<LocationSearchResponse, Error>) => {
+export const useLocationsGetLocations = (options?: Partial<UseQueryOptions<LocationSearchResponse, Error>>) => {
     return useQuery({
-        queryKey: ['LocationsService', 'getLocationsSgvdLocationsGet'],
+        queryKey: ['Locations', 'getLocationsSgvdLocationsGet'],
         queryFn: () => appClient.locations.getLocationsSgvdLocationsGet(),
         ...options,
-    });
+    } as UseQueryOptions<LocationSearchResponse, Error>);
 };
 
 export const useLocationsUpdateLocation = (options?: UseMutationOptions<LocationUpdateResponse, Error, { /** * Location name */ name: string, /** * Google Maps URL to extract coordinates */ googleMapsUrl: string, /** * Location description */ description: string, }>) => {

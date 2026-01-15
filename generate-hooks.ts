@@ -37,14 +37,13 @@ function generateHooks() {
 import { useQuery, useMutation, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
 import { appClient } from '../../lib/appClient';
 import {
-    CancelablePromise,
-    ${uniqueModels.join(',\n    ')}
+    CancelablePromise${uniqueModels.length > 0 ? ',\n    ' + uniqueModels.join(',\n    ') : ''}
 } from '../index';
 
 `;
 
         // Better regex for methods to find the return type correctly
-        const methodRegex = /public\s+(\w+)\s*\(([^)]*)\)\s*:\s*CancelablePromise</g;
+        const methodRegex = /public\s+(\w+)\s*\(([\s\S]*?)\)\s*:\s*CancelablePromise</g;
         let match;
         let hasHooks = false;
 
@@ -56,55 +55,47 @@ import {
             const returnType = extractNestedType(content, returnTypeStart).trim();
 
             const methodBodyStart = content.indexOf('{', returnTypeStart + returnType.length);
-            const methodBodyEnd = content.indexOf('});', methodBodyStart); // Finding the end of the request call
+            const methodBodyEnd = content.indexOf('});', methodBodyStart);
             const methodBody = content.slice(methodBodyStart, methodBodyEnd);
 
             const isMutation = /method:\s*'(POST|PUT|DELETE|PATCH)'/.test(methodBody);
 
-            // Clean method name by removing Sgvd prefix and everything after it
+            // Clean method name
             let cleanMethodName = methodName.split('Sgvd')[0];
-
-            // Further clean by removing common HTTP method suffixes if they appear at the end
             cleanMethodName = cleanMethodName.replace(/(Get|Post|Put|Delete|Patch)$/, '');
 
             const serviceBaseName = serviceName.replace('Service', '');
             const hookName = `use${serviceBaseName}${cleanMethodName.charAt(0).toUpperCase() + cleanMethodName.slice(1)}`;
 
-            const paramTypeMatch = params.match(/:\s*({[^]+}|[\w]+)/); // Use [^] to match multi-line params
+            const paramTypeMatch = params.match(/:\s*({[\s\S]*?}|[\w]+)/);
             const paramType = paramTypeMatch ? paramTypeMatch[1].trim().replace(/\s+/g, ' ') : null;
 
+            const serviceProperty = serviceName.charAt(0).toLowerCase() + serviceName.slice(1, -7);
+
             if (isMutation) {
-                if (paramType) {
-                    fileOutput += `export const ${hookName} = (options?: UseMutationOptions<${returnType}, Error, ${paramType}>) => {
+                const mutationParamsType = paramType || 'void';
+                fileOutput += `export const ${hookName} = (options?: UseMutationOptions<${returnType}, Error, ${mutationParamsType}>) => {
     return useMutation({
-        mutationFn: (variables: ${paramType}) => appClient.${serviceName.charAt(0).toLowerCase() + serviceName.slice(1, -7)}.${methodName}(variables),
+        mutationFn: (${paramType ? 'variables: ' + paramType : ''}) => appClient.${serviceProperty}.${methodName}(${paramType ? 'variables' : ''}),
         ...options,
     });
 };\n\n`;
-                } else {
-                    fileOutput += `export const ${hookName} = (options?: UseMutationOptions<${returnType}, Error, void>) => {
-    return useMutation({
-        mutationFn: () => appClient.${serviceName.charAt(0).toLowerCase() + serviceName.slice(1, -7)}.${methodName}(),
-        ...options,
-    });
-};\n\n`;
-                }
             } else {
                 if (paramType) {
-                    fileOutput += `export const ${hookName} = (variables: ${paramType}, options?: UseQueryOptions<${returnType}, Error>) => {
+                    fileOutput += `export const ${hookName} = (variables: ${paramType}, options?: Partial<UseQueryOptions<${returnType}, Error>>) => {
     return useQuery({
-        queryKey: ['${serviceName}', '${methodName}', variables],
-        queryFn: () => appClient.${serviceName.charAt(0).toLowerCase() + serviceName.slice(1, -7)}.${methodName}(variables),
+        queryKey: ['${serviceBaseName}', '${methodName}', variables],
+        queryFn: () => appClient.${serviceProperty}.${methodName}(variables),
         ...options,
-    });
+    } as UseQueryOptions<${returnType}, Error>);
 };\n\n`;
                 } else {
-                    fileOutput += `export const ${hookName} = (options?: UseQueryOptions<${returnType}, Error>) => {
+                    fileOutput += `export const ${hookName} = (options?: Partial<UseQueryOptions<${returnType}, Error>>) => {
     return useQuery({
-        queryKey: ['${serviceName}', '${methodName}'],
-        queryFn: () => appClient.${serviceName.charAt(0).toLowerCase() + serviceName.slice(1, -7)}.${methodName}(),
+        queryKey: ['${serviceBaseName}', '${methodName}'],
+        queryFn: () => appClient.${serviceProperty}.${methodName}(),
         ...options,
-    });
+    } as UseQueryOptions<${returnType}, Error>);
 };\n\n`;
                 }
             }
