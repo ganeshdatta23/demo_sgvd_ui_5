@@ -19,11 +19,22 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  // Check if user is logged in on mount
+  // Check if user is logged in on mount with token validation
   React.useEffect(() => {
     import('./api/config').then(({ TokenManager }) => {
-      setIsLoggedIn(TokenManager.isAuthenticated());
+      const isAuthenticated = TokenManager.isAuthenticated();
+      setIsLoggedIn(isAuthenticated);
+
+      // If token exists but is invalid, remove it
+      const token = TokenManager.getToken();
+      if (token && !isAuthenticated) {
+        TokenManager.removeToken();
+        console.log('Removed invalid/expired token');
+      }
+
+      setIsCheckingAuth(false);
     });
   }, []);
   const [sunriseAlarm, setSunriseAlarm] = useState(false);
@@ -36,6 +47,18 @@ export default function App() {
     if (km < 1) return `${Math.round(km * 1000)} m`;
     return `${km.toFixed(2)} km`;
   };
+
+  // Show loading screen while checking auth
+  if (isCheckingAuth) {
+    return (
+      <div className={`relative w-full h-screen flex items-center justify-center ${isDarkMode ? COLORS.dark.background : COLORS.light.background}`}>
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-gold border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-white/60 text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const renderContent = () => {
     switch (activeTab) {
