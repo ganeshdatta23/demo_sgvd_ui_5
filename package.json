@@ -6,17 +6,27 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate": "tsx generate-openapi.ts && node generateJsonSchema.js && tsx generate-hooks.ts",
+    "generate:hooks": "tsx generate-hooks.ts",
+    "build:generate": "npm run generate && npm run build",
+    "dev:generate": "npm run generate && npm run dev"
   },
   "dependencies": {
-    "react-dom": "^19.2.0",
+    "@google/genai": "^1.30.0",
     "lucide-react": "^0.554.0",
     "react": "^19.2.0",
-    "@google/genai": "^1.30.0"
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@tanstack/react-query": "^5.90.17",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "axios": "^1.13.2",
+    "dotenv": "^17.2.3",
+    "openapi-typescript-codegen": "^0.30.0",
+    "ts-json-schema-generator": "^2.4.0",
+    "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
